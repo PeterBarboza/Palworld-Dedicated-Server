@@ -1,0 +1,19 @@
+# Environment and secrets
+.env
+.env.*
+
+# Server data (managed via Docker volumes)
+palserver/
+steamcmd/
+SaveGames/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

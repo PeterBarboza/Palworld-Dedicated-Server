@@ -1,0 +1,31 @@
+services:
+  palworld:
+    build: .
+    container_name: palworld-server
+    restart: unless-stopped
+    ports:
+      - "8211:8211/udp"
+      - "27015:27015/udp"
+    volumes:
+      # Persist server data (saves, config) between container rebuilds
+      - palworld-data:/home/steam/palserver/Pal/Saved
+    environment:
+      # --- Server visibility ---
+      COMMUNITY_SERVER: "true"       # Appear in community server list
+      MULTITHREAD: "true"            # Better performance on multi-core CPUs
+
+      # --- Game settings (PAL_ prefix maps to PalWorldSettings.ini) ---
+      # PAL_ServerName: "My Palworld Server"
+      # PAL_ServerDescription: ""
+      # PAL_AdminPassword: ""
+      # PAL_ServerPassword: ""
+      # PAL_ServerPlayerMaxNum: "32"
+      # PAL_PublicPort: "8211"
+      # PAL_RCONPort: "25575"
+      # PAL_RCONEnabled: "True"
+
+      # --- Extra launch args (appended raw) ---
+      # EXTRA_ARGS: "-port=8211 -queryport=27015"
+
+volumes:
+  palworld-data:
