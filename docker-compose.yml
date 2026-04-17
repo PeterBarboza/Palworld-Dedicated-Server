@@ -7,8 +7,9 @@ services:
       - "8211:8211/udp"
       - "27015:27015/udp"
     volumes:
-      # Persist server data (saves, config) between container rebuilds
-      - palworld-data:/home/steam/palserver/Pal/Saved
+      # Persist the ENTIRE server install (3.8 GB game files + saves + config)
+      # This avoids re-downloading via SteamCMD on every restart
+      - palworld-server:/home/steam/palserver
     environment:
       # --- Server visibility ---
       COMMUNITY_SERVER: "true"       # Appear in community server list
@@ -28,4 +29,4 @@ services:
       # EXTRA_ARGS: "-port=8211 -queryport=27015"
 
 volumes:
-  palworld-data:
+  palworld-server:
