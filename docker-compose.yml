@@ -10,23 +10,19 @@ services:
       # Persist the ENTIRE server install (3.8 GB game files + saves + config)
       # This avoids re-downloading via SteamCMD on every restart
       - palworld-server:/home/steam/palserver
+    env_file:
+      # Loads every var from this file into the container env.
+      # On Coolify: vars set in the resource's "Environment Variables" tab
+      # are written to .env in the project root before deploy — so just set
+      # PAL_* there and they reach the entrypoint with no compose edits.
+      # Locally: create .env next to this file with KEY=VALUE per line.
+      - path: .env
+        required: false
     environment:
-      # --- Server visibility ---
-      COMMUNITY_SERVER: "true"       # Appear in community server list
-      MULTITHREAD: "true"            # Better performance on multi-core CPUs
-
-      # --- Game settings (PAL_ prefix maps to PalWorldSettings.ini) ---
-      # PAL_ServerName: "My Palworld Server"
-      # PAL_ServerDescription: ""
-      # PAL_AdminPassword: ""
-      # PAL_ServerPassword: ""
-      # PAL_ServerPlayerMaxNum: "32"
-      # PAL_PublicPort: "8211"
-      # PAL_RCONPort: "25575"
-      # PAL_RCONEnabled: "True"
-
-      # --- Extra launch args (appended raw) ---
-      # EXTRA_ARGS: "-port=8211 -queryport=27015"
+      # Hardcoded defaults — `environment:` wins over `env_file:`, so to change
+      # these, edit here directly (don't try to override via Coolify UI).
+      COMMUNITY_SERVER: "true"
+      MULTITHREAD: "true"
 
 volumes:
   palworld-server:
