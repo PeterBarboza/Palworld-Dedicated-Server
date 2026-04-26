@@ -35,15 +35,31 @@ if [ ! -f "${SETTINGS_FILE}" ]; then
 fi
 
 # Apply env-based overrides (any env var starting with PAL_ maps to a setting)
-# Example: PAL_ServerName="My Server" -> ServerName=My Server
+# Example: PAL_ServerName="My Server" -> ServerName="My Server"
+#
+# Palworld stores all settings on a single OptionSettings=(K=V,K=V,...) line.
+# String fields are quoted in the default file (e.g. AdminPassword=""), and
+# the parser silently drops unquoted strings — so we MUST preserve quotes when
+# the original entry has them. Numbers/bools/enums stay unquoted.
+#
+# Anchor each replacement with the leading `(` or `,` so a key that is a
+# substring of another (e.g. AdditionalDropItem... vs bAdditionalDropItem...)
+# only matches the right occurrence. Use `|` as sed delimiter so values
+# containing `/` (URLs) don't break the expression.
 if [ -f "${SETTINGS_FILE}" ]; then
     while IFS='=' read -r key value; do
         if [[ "${key}" == PAL_* ]]; then
             setting_name="${key#PAL_}"
-            echo "==> Applying setting: ${setting_name}=${value}"
-            # Replace in the OptionSettings section
-            if grep -q "${setting_name}=" "${SETTINGS_FILE}"; then
-                sed -i "s/${setting_name}=[^,)*]*/${setting_name}=${value}/g" "${SETTINGS_FILE}"
+            # Escape sed replacement metacharacters in the value (& and |).
+            esc_value=$(printf '%s' "${value}" | sed -e 's/[&|]/\\&/g')
+            if grep -qE "[(,]${setting_name}=\"" "${SETTINGS_FILE}"; then
+                echo "==> Applying setting: ${setting_name}=\"${value}\""
+                sed -i -E "s|([(,])${setting_name}=\"[^\"]*\"|\1${setting_name}=\"${esc_value}\"|" "${SETTINGS_FILE}"
+            elif grep -qE "[(,]${setting_name}=" "${SETTINGS_FILE}"; then
+                echo "==> Applying setting: ${setting_name}=${value}"
+                sed -i -E "s|([(,])${setting_name}=[^,)]*|\1${setting_name}=${esc_value}|" "${SETTINGS_FILE}"
+            else
+                echo "==> Skipping unknown setting: ${setting_name}"
             fi
         fi
     done < <(env)
