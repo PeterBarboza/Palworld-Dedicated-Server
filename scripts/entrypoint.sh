@@ -39,8 +39,13 @@ fi
 #
 # Palworld stores all settings on a single OptionSettings=(K=V,K=V,...) line.
 # String fields are quoted in the default file (e.g. AdminPassword=""), and
-# the parser silently drops unquoted strings — so we MUST preserve quotes when
-# the original entry has them. Numbers/bools/enums stay unquoted.
+# the parser silently drops unquoted strings — so we MUST quote them in the
+# replacement. Numbers/bools/enums stay unquoted.
+#
+# We can't trust the live SETTINGS_FILE to know which fields are strings,
+# because previous (buggy) boots may have stripped the quotes. The pristine
+# DefaultPalWorldSettings.ini that SteamCMD restores on every update is the
+# source of truth.
 #
 # Anchor each replacement with the leading `(` or `,` so a key that is a
 # substring of another (e.g. AdditionalDropItem... vs bAdditionalDropItem...)
@@ -52,14 +57,30 @@ if [ -f "${SETTINGS_FILE}" ]; then
             setting_name="${key#PAL_}"
             # Escape sed replacement metacharacters in the value (& and |).
             esc_value=$(printf '%s' "${value}" | sed -e 's/[&|]/\\&/g')
-            if grep -qE "[(,]${setting_name}=\"" "${SETTINGS_FILE}"; then
+
+            # Decide quoting from the pristine default, not from the live file.
+            is_string=0
+            if [ -f "${DEFAULT_SETTINGS}" ] && grep -qE "[(,]${setting_name}=\"" "${DEFAULT_SETTINGS}"; then
+                is_string=1
+            fi
+
+            if [ "${is_string}" = "1" ]; then
                 echo "==> Applying setting: ${setting_name}=\"${value}\""
-                sed -i -E "s|([(,])${setting_name}=\"[^\"]*\"|\1${setting_name}=\"${esc_value}\"|" "${SETTINGS_FILE}"
-            elif grep -qE "[(,]${setting_name}=" "${SETTINGS_FILE}"; then
-                echo "==> Applying setting: ${setting_name}=${value}"
-                sed -i -E "s|([(,])${setting_name}=[^,)]*|\1${setting_name}=${esc_value}|" "${SETTINGS_FILE}"
+                # Match either quoted (correct) or unquoted (legacy/broken) in live file.
+                if grep -qE "[(,]${setting_name}=\"" "${SETTINGS_FILE}"; then
+                    sed -i -E "s|([(,])${setting_name}=\"[^\"]*\"|\1${setting_name}=\"${esc_value}\"|" "${SETTINGS_FILE}"
+                elif grep -qE "[(,]${setting_name}=" "${SETTINGS_FILE}"; then
+                    sed -i -E "s|([(,])${setting_name}=[^,)]*|\1${setting_name}=\"${esc_value}\"|" "${SETTINGS_FILE}"
+                else
+                    echo "==> Skipping unknown setting: ${setting_name}"
+                fi
             else
-                echo "==> Skipping unknown setting: ${setting_name}"
+                echo "==> Applying setting: ${setting_name}=${value}"
+                if grep -qE "[(,]${setting_name}=" "${SETTINGS_FILE}"; then
+                    sed -i -E "s|([(,])${setting_name}=[^,)]*|\1${setting_name}=${esc_value}|" "${SETTINGS_FILE}"
+                else
+                    echo "==> Skipping unknown setting: ${setting_name}"
+                fi
             fi
         fi
     done < <(env)
