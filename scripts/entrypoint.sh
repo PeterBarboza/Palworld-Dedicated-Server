@@ -20,6 +20,7 @@ ln -sf "${PALSERVER_DIR}/linux64/steamclient.so" /home/steam/.steam/sdk64/steamc
 # --- Apply settings from env vars ---
 SETTINGS_DIR="${PALSERVER_DIR}/Pal/Saved/Config/LinuxServer"
 SETTINGS_FILE="${SETTINGS_DIR}/PalWorldSettings.ini"
+DEFAULT_SETTINGS="${PALSERVER_DIR}/DefaultPalWorldSettings.ini"
 
 # Generate default config if first run
 if [ ! -f "${SETTINGS_FILE}" ]; then
@@ -27,7 +28,6 @@ if [ ! -f "${SETTINGS_FILE}" ]; then
     mkdir -p "${SETTINGS_DIR}"
 
     # Copy the default settings template if it exists
-    DEFAULT_SETTINGS="${PALSERVER_DIR}/DefaultPalWorldSettings.ini"
     if [ -f "${DEFAULT_SETTINGS}" ]; then
         cp "${DEFAULT_SETTINGS}" "${SETTINGS_FILE}"
         echo "==> Default settings copied."
